@@ -4,9 +4,16 @@ README for libbsb
 Building and installing
 -----------------------
   For Unix and Unix-like OSs (including Mac OS X):
+
+    * If building from source code repository:
+      ./bootstrap.sh
+
+    * Next, (or if building from source code .tar.gz distribution):
       ./configure
       make
       make check
+    
+    * To install library and tools in /usr/local (or prefix specified with ./configure):
       make install
 
   "make install" will install the library libbsb.a, its C header file bsb.h
