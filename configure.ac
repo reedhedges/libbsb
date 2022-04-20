@@ -52,6 +52,15 @@ if test x"$have_libpng" = "xno" ; then
 	AC_MSG_WARN([*** PNG conversion tools will not be built ***])
 fi
 
+have_libzip=no
+AC_CHECK_HEADER([zip.h],
+  [AC_CHECK_LIB(zip, zip_open, [ have_libzip=yes ], [], [])]
+)
+AM_CONDITIONAL(HAVE_LIBZIP, test x"$have_libzip" = "xyes")
+if test x"$have_libzip" = "xno"; then
+  AC_MSG_WARN([*** ZIP conversion tools will not be built ***])
+fi
+
 have_qt=no
 AC_PATH_X
 qtdir=${QTDIR}

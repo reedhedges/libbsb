@@ -21,6 +21,9 @@ bin_PROGRAMS += bsb2tif tif2bsb
 endif
 if HAVE_LIBPNG
 bin_PROGRAMS += bsb2png bsbmem2png
+if HAVE_LIBZIP
+bin_PROGRAMS += bsbzip2pngs
+endif
 endif
 if HAVE_LIBQT
 bin_PROGRAMS += bsbview
@@ -39,6 +42,7 @@ tif2bsb_LDADD = libbsb.a -ltiff -lm
 # Under MinGW libpng needs -lz (doesn't hurt under other platforms)
 bsb2png_LDADD = libbsb.a -lpng -lz -lm
 bsbmem2png_LDADD = libbsb.a -lpng -lz -lm
+bsbzip2pngs_LDADD = libbsb.a -lpng -lzip -lz -lm
 
 if USE_MSVC
 # The '; true' is necessary to throw away the remaining arguments from the

@@ -13,7 +13,7 @@ Building and installing
   and the following conversion programs:
     bsb2ppm        ppm2bsb        bsbfix
     bsb2tif        tif2bsb
-    bsb2png        
+    bsb2png        bsbzip2pngs
   and BSB viewer bsbview
 
   For WIN32 native builds you must install MSYS to be able to run the
@@ -33,6 +33,9 @@ Building and installing
 
   For bsb2png you must have libpng installed.
     libpng  - http://www.libpng.org/pub/png/libpng.html
+
+  For bsbzip2pngs you must have both libpng and libzip installed
+    libzip  - http://libzip.org
 
   For bsbview you must have lib Qt3 development (libqt3-mt). For windows 
   you can use the free Qt3/win version. The QTDIR environment must be set 
@@ -68,7 +71,17 @@ drawn map of Australia so it is not intended for navigational purposes :)
   Usage of bsb2ppm and ppm2bsb is similiar to the TIFF utilities.
       bsb2ppm australia4c.kap australia4c.ppm
       ppm2bsb australia4c.kap edited.ppm new.kap
+
+  bsb2png
+  -------
+  Usage of bsb2png is similar to other utilities.
+      bsb2png australia4c.kap australia4c.png
   
+  bsbzip2pngs
+  -----------
+  To extract and convert each chart (KAP) file found in a zip archive to PNG image:
+    bsbzip2pngs example.zip
+  For each chart file in the zip named foo.kap, a PNG image foo.png is created.
   
   bsbfix
   ------
