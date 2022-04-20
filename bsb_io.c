@@ -267,6 +267,15 @@ extern int bsb_open_header(char *filename, BSBImage *p)
     return bsb_open_fp(fp, p);
 }
 
+/**
+ *  Uses the given file pointer to read BSB (KAP or NO1) data, populate the BSBImage structure,
+ *  also reads the row index.
+ *
+ * @param fp File pointer to begin using.  Must already have been opened using fopen() or similar. Must not be NULL.
+ * @param p pointer to the BSBImage structure
+ *
+ * @return 0 on failure
+ */
 int bsb_open_fp(FILE *fp, BSBImage *p)
 {
     int text_size = 0, depth;
