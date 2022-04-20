@@ -34,8 +34,8 @@ static void copy_bsb_to_png(BSBImage *image, png_structp png_ptr)
 	int		row, bp, pp;
 	uint8_t	*bsb_row, *png_row;
 
-	bsb_row = (uint8_t *)malloc(image->height * sizeof(uint8_t *));
-	png_row = (uint8_t *)malloc(image->height * sizeof(uint8_t *) * image->depth);
+	bsb_row = (uint8_t *)malloc(image->width * sizeof(uint8_t));
+	png_row = (uint8_t *)malloc(image->width * sizeof(uint8_t) * image->depth);
 
 	/* Copy row by row */
 	for (row = 0; row < image->height; row++)
@@ -44,9 +44,10 @@ static void copy_bsb_to_png(BSBImage *image, png_structp png_ptr)
 		bsb_read_row(image, bsb_row);
 		for (bp = 0, pp = 0; bp < image->width; bp++)
 		{
-			png_row[pp++] = image->red[bsb_row[bp]];
-			png_row[pp++] = image->green[bsb_row[bp]];
-			png_row[pp++] = image->blue[bsb_row[bp]];
+			uint8_t i = bsb_row[bp];
+			png_row[pp++] = image->red[i];
+			png_row[pp++] = image->green[i];
+			png_row[pp++] = image->blue[i];
 		}
 		png_write_row(png_ptr, png_row);
 	}
