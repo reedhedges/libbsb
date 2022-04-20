@@ -220,12 +220,9 @@ extern int bsb_get_header_size(FILE *fp)
  */
 extern int bsb_open_header(char *filename, BSBImage *p)
 {
-    int text_size = 0, c, depth;
-    char *p_ext, *pt, *text_buf, line[1024];
-
-    /* zerofill entire BSB structure - not very strict
-       as we would want some 0.0l and 0.0f but this works just the same */
-    memset( p, 0, sizeof(*p) );
+    int c;
+    char *p_ext; 
+    FILE *fp = NULL;
 
     /* Look for an extension (if any) to test for '.NO1' files
        which must be treated specially since they are obfuscated */
@@ -242,7 +239,7 @@ extern int bsb_open_header(char *filename, BSBImage *p)
         }
 
         /* Open temporary file to store unobfuscated file */
-        if (! (p->pFile = tmpfile()))
+        if (! (fp = tmpfile()))
         {
             perror("tmpfile()");
             return 0;
@@ -252,20 +249,42 @@ extern int bsb_open_header(char *filename, BSBImage *p)
         while ((c = fgetc(inputFile)) != EOF)
         {
             int r = (c - 9) & 0xFF;
-            fputc(r, p->pFile);
+            fputc(r, fp);
         }
-        fflush(p->pFile);
-        fseek(p->pFile, 0, SEEK_SET);
+        fflush(fp);
+        fseek(fp, 0, SEEK_SET);
     }
     else
     {
         /* Normal unobfuscated BSB/NOS files can be opened straight away */
-        if (! (p->pFile = fopen(filename, "rb")))
+        if (! (fp = fopen(filename, "rb")))
         {
             perror(filename);
             return 0;
         }
     }
+
+    return bsb_open_fp(fp, p);
+}
+
+int bsb_open_fp(FILE *fp, BSBImage *p)
+{
+    int text_size = 0, depth;
+    char *pt, *text_buf, line[1024];
+
+
+    if(!fp)
+    {
+      fputs("Error: NULL file pointer in bsb_open_fp()", stderr);
+      return 0;
+    }
+
+
+    /* zerofill entire BSB structure - not very strict
+       as we would want some 0.0l and 0.0f but this works just the same */
+    memset( p, 0, sizeof(*p) );
+
+    p->pFile = fp;
 
     if ((text_size = bsb_get_header_size(p->pFile)) == 0)
         return 0;

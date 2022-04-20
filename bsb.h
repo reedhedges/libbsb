@@ -111,6 +111,8 @@ extern "C" {
 
 extern int bsb_get_header_size(FILE *fp);
 extern int bsb_open_header(char *filename, BSBImage *p);
+inline int bsb_open_file(char *filename, BSBImage *p) { return bsb_open_header(filename, p); }
+extern int bsb_open_fp(FILE *fp, BSBImage *p);
 extern int bsb_seek_to_row(BSBImage *p, int row);
 extern int bsb_read_row(BSBImage *p, uint8_t *buf);
 extern int bsb_read_row_at(BSBImage *p, int row, uint8_t *buf);
