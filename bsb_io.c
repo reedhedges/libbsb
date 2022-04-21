@@ -148,6 +148,46 @@ int readNumberList( char* pc, double list[], int count )
     return i;
 }
 
+
+inline static size_t bsb_fread(BSBImage* bsb, void *buf, size_t size, size_t nmemb)
+{
+  if(bsb->user_fread_func)
+    return (*(bsb->user_fread_func))(buf, size, nmemb, bsb->user_ptr);
+  else 
+    return fread(buf, size, nmemb, bsb->pFile);
+}
+
+inline static int bsb_fseek(BSBImage* bsb, long offset, int whence)
+{
+  if(bsb->user_fseek_func)
+    return (*(bsb->user_fseek_func))(offset, whence, bsb->user_ptr);
+  else 
+    return fseek(bsb->pFile, offset, whence);
+}
+
+inline static long bsb_ftell(BSBImage* bsb)
+{
+  if(bsb->user_ftell_func)
+    return (*(bsb->user_ftell_func))(bsb->user_ptr);
+  else 
+    return ftell(bsb->pFile);
+}
+
+inline static int bsb_fgetc(BSBImage *bsb)
+{
+  if(bsb->user_fread_func)
+  {
+    unsigned char c;
+    if( (*(bsb->user_fread_func))(&c, 1, 1, bsb->user_ptr) < 1) 
+      return EOF;
+    return (int)c;
+  }
+  else
+  {
+    return fgetc(bsb->pFile);
+  }
+}
+
 /**
  * internal function - reads the raster row index
  *
@@ -157,20 +197,20 @@ static
 int bsb_read_row_index( BSBImage* p )
 {
     /* Read start-of-index offset */
-    if (fseek(p->pFile, -4, SEEK_END) == -1)
+    if (bsb_fseek(p, -4, SEEK_END) == -1)
         return 0;
     uint32_t st;
-    if (fread(&st, 4, 1, p->pFile) != 1)
+    if (bsb_fread(p, &st, 4, 1) != 1)
         return 0;
     uint32_t start_of_index = bsb_ntohl(st);
     /* Read start-of-rows offset */
-    if (fseek(p->pFile, start_of_index, SEEK_SET) == -1)
+    if (bsb_fseek(p, start_of_index, SEEK_SET) == -1)
         return 0;
     /* allocate one more for last row ending */
     p->row_index = (uint32_t*)malloc( (p->height+1)*4 );
     if ( !p->row_index )
         return 0;
-    if (fread(p->row_index, p->height*4, 1, p->pFile) != 1)
+    if (bsb_fread(p, p->row_index, p->height*4, 1) != 1)
         return 0;
     /* remember end of last row, which is start of the index */
     p->row_index[p->height] = start_of_index;
@@ -209,8 +249,34 @@ extern int bsb_get_header_size(FILE *fp)
     return text_size;
 }
 
+/* Private version used when called internally with an already initialized BSBImage that may have custom file io */
+static int bsb_get_header_size_internal(BSBImage *p)
+{
+    int text_size = 0, c;
+
+    /* scan for end-of-text marker and record size of text section */
+    while ( (c = bsb_fgetc(p)) != -1 )
+    {
+        if (c == 0x1a)      /* Control-Z */
+            break;
+        text_size++;
+    }
+    return text_size;
+}
+
+inline static void init_bsb_image(BSBImage *p)
+{
+    /* zerofill entire BSB structure - not very strict
+       as we would want some 0.0l and 0.0f but this works just the same */
+    memset( p, 0, sizeof(*p) );
+}
+
+
+static int bsb_open_internal(BSBImage *p);
+
 /**
- *  opens the BSB (KAP or NO1) file and and populated the BSBImage structure
+ *  AKA bsb_open_file().
+ *  Opens the BSB (KAP or NO1) file and and populated the BSBImage structure
  *  also reads the row index
  *
  * @param filename full path to the file to open
@@ -223,6 +289,9 @@ extern int bsb_open_header(char *filename, BSBImage *p)
     int c;
     char *p_ext; 
     FILE *fp = NULL;
+
+    init_bsb_image(p);
+
 
     /* Look for an extension (if any) to test for '.NO1' files
        which must be treated specially since they are obfuscated */
@@ -264,38 +333,16 @@ extern int bsb_open_header(char *filename, BSBImage *p)
         }
     }
 
-    return bsb_open_fp(fp, p);
+    p->pFile = fp;
+    return bsb_open_internal(p);
 }
 
-/**
- *  Uses the given file pointer to read BSB (KAP or NO1) data, populate the BSBImage structure,
- *  also reads the row index.
- *
- * @param fp File pointer to begin using.  Must already have been opened using fopen() or similar. Must not be NULL.
- * @param p pointer to the BSBImage structure
- *
- * @return 0 on failure
- */
-int bsb_open_fp(FILE *fp, BSBImage *p)
+/* BSBImage struct must have already been initialized and file/io prepared */
+static int bsb_open_internal(BSBImage *p)
 {
     int text_size = 0, depth;
     char *pt, *text_buf, line[1024];
-
-
-    if(!fp)
-    {
-      fputs("Error: NULL file pointer in bsb_open_fp()", stderr);
-      return 0;
-    }
-
-
-    /* zerofill entire BSB structure - not very strict
-       as we would want some 0.0l and 0.0f but this works just the same */
-    memset( p, 0, sizeof(*p) );
-
-    p->pFile = fp;
-
-    if ((text_size = bsb_get_header_size(p->pFile)) == 0)
+    if ((text_size = bsb_get_header_size_internal(p)) == 0)
         return 0;
 
     /* allocate space & read in the entire text header */
@@ -308,8 +355,8 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
         return 0;
     }
 
-    fseek(p->pFile, 0, SEEK_SET);
-    if (fread(text_buf, text_size, 1, p->pFile) != 1)
+    bsb_fseek(p, 0, SEEK_SET);
+    if (bsb_fread(p, text_buf, text_size, 1) != 1)
         return 0;
     text_buf[text_size] = '\0';
 
@@ -462,23 +509,23 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
     free(text_buf);
 
     /* Attempt to read depth from binary section, but first skip until NULL */
-    while( fgetc(p->pFile) > 0 );
+    while( bsb_fgetc(p) > 0 );
 
     /* Test depth from bitstream */
-    depth = fgetc(p->pFile);
+    depth = bsb_fgetc(p);
     if (depth != p->depth)
     {
         fprintf(stderr,
                 "Warning: depth from IFM tag (%d) != depth from bitstream (%d)\n",
                 p->depth, depth);
     }
-    long pos = ftell(p->pFile);
+    long pos = bsb_ftell(p);
     if ( !bsb_read_row_index(p) )
     {
        /* printf("Could not read row index\n"); */
        /* restore file position so it starts at the first row again */
        /* TODO: provide a function to recreate the index */
-       fseek(p->pFile, pos, SEEK_SET);
+       bsb_fseek(p, pos, SEEK_SET);
     }
     else
     {
@@ -487,6 +534,44 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
     }
     return 1;
 }
+extern int bsb_open_custom_file_io(BSBImage *p, 
+    size_t(*user_fread_func)(void*, size_t, size_t, void*),
+    int(*user_fseek_func)(long, int, void*),
+    long(*user_ftell_func)(void*),
+    void *user_ptr)
+{
+  init_bsb_image(p);
+  p->user_fread_func = user_fread_func;
+  p->user_fseek_func = user_fseek_func;
+  p->user_ftell_func = user_ftell_func;
+  p->user_ptr = user_ptr;
+  return bsb_open_internal(p);
+}
+
+/**
+ *  Uses the given file pointer to read BSB (KAP or NO1) data, populate the BSBImage structure,
+ *  also reads the row index.
+ *
+ * @param fp File pointer to begin using.  Must already have been opened using fopen() or similar. Must not be NULL.
+ * @param p pointer to the BSBImage structure
+ *
+ * @return 0 on failure
+ */
+int bsb_open_fp(FILE *fp, BSBImage *p)
+{
+    if(!fp)
+    {
+      fputs("Error: NULL file pointer in bsb_open_fp()", stderr);
+      return 0;
+    }
+
+    init_bsb_image(p);
+    p->pFile = fp;
+    return bsb_open_internal(p);
+}
+
+
+
 
 
 /**
@@ -574,15 +659,15 @@ extern int bsb_seek_to_row(BSBImage *p, int row)
     if ( !p->row_index )
     {
         /* Read start-of-index offset */
-        if (fseek(p->pFile, -4, SEEK_END) == -1)
+        if (bsb_fseek(p, -4, SEEK_END) == -1)
             return 0;
-        if (fread(&st, 4, 1, p->pFile) != 1)
+        if (bsb_fread(p, &st, 4, 1) != 1)
             return 0;
         start_of_index = bsb_ntohl(st);
         /* Read start-of-rows offset */
-        if (fseek(p->pFile, row*4 + start_of_index, SEEK_SET) == -1)
+        if (bsb_fseek(p, row*4 + start_of_index, SEEK_SET) == -1)
             return 0;
-        if (fread(&st, 4, 1, p->pFile) != 1)
+        if (bsb_fread(p, &st, 4, 1) != 1)
             return 0;
         start_of_rows = bsb_ntohl(st);
     }
@@ -592,7 +677,7 @@ extern int bsb_seek_to_row(BSBImage *p, int row)
     }
 
     /* seek to row offset */
-    if (fseek(p->pFile, start_of_rows, SEEK_SET) == -1)
+    if (bsb_fseek(p, start_of_rows, SEEK_SET) == -1)
         return 0;
     else
         return 1;
@@ -619,14 +704,14 @@ extern int bsb_read_row(BSBImage *p, uint8_t *buf)
     /* The 8th bit indicates if row number is continued in the next byte.	*/
     do
     {
-        c = fgetc(p->pFile);
+        c = bsb_fgetc(p);
         row_num = ((row_num & 0x7f) << 7) + c;
     } while (c >= 0x80);
 
     /* Rows are terminated by '\0'.  Note that rows can contain a '\0'	*/
     /* as part of the run-length data, so '\0' does not delimit rows.	*/
     /* (This occurs when multiplier is a multiple of 128 - 1)			*/
-    while ((c = fgetc(p->pFile)) != '\0')
+    while ((c = bsb_fgetc(p)) != '\0')
     {
         if (c == EOF)
         {
@@ -639,7 +724,7 @@ extern int bsb_read_row(BSBImage *p, uint8_t *buf)
 
         while (c >= 0x80)
         {
-            c = fgetc(p->pFile);
+            c = bsb_fgetc(p);
             multiplier = (multiplier << 7) + (c & 0x7f);
         }
         multiplier++;
@@ -726,13 +811,13 @@ extern int bsb_read_row_part(BSBImage *p, int row, uint8_t *buf, int xoffset, in
         return bsb_read_row( p, buf );
     }
 
-    if ( fseek( p->pFile, p->row_index[row], SEEK_SET ) == -1 )
+    if ( bsb_fseek( p, p->row_index[row], SEEK_SET ) == -1 )
         return 0;
 
     int size = p->row_index[row+1]-p->row_index[row];
     unsigned char* rbuf = p->rbuf;
     /* read compressed row in one step */
-    if ( fread( rbuf, size, 1, p->pFile ) != 1 )
+    if ( bsb_fread(p, rbuf, size, 1) != 1 )
     {
         return 0;
     }

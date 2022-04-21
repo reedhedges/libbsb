@@ -25,3 +25,4 @@ bsb2tif
 tests/at_wrap
 tests/atconfig
 tests/Makefile.in
+*.sw?

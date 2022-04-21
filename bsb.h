@@ -101,6 +101,12 @@ typedef struct BSBImage
     FILE* pFile;
     uint32_t* row_index;
     unsigned char* rbuf;
+    
+    /* optional custom file i/o functions */
+    size_t(*user_fread_func)(void*, size_t, size_t, void*); /* size_t fread(void *buf, size_t size, size_t nmemb, void *user_ptr) */
+    int(*user_fseek_func)(long, int, void*); /* int fseek(long offset, int whence, void *user_ptr) */
+    long(*user_ftell_func)(void*); /* long ftell(void *user_ptr) */
+    void *user_ptr;
 } BSBImage;
 
 #ifdef __cplusplus
@@ -113,6 +119,11 @@ extern int bsb_get_header_size(FILE *fp);
 extern int bsb_open_header(char *filename, BSBImage *p);
 inline int bsb_open_file(char *filename, BSBImage *p) { return bsb_open_header(filename, p); }
 extern int bsb_open_fp(FILE *fp, BSBImage *p);
+extern int bsb_open_custom_file_io(BSBImage *p, 
+    size_t(*user_fread_func)(void*, size_t, size_t, void*),
+    int(*user_fseek_func)(long, int, void*),
+    long(*user_ftell_func)(void*),
+    void *user_ptr);
 extern int bsb_seek_to_row(BSBImage *p, int row);
 extern int bsb_read_row(BSBImage *p, uint8_t *buf);
 extern int bsb_read_row_at(BSBImage *p, int row, uint8_t *buf);
