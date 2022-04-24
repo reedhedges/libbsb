@@ -62,26 +62,34 @@ if test x"$have_libzip" = "xno"; then
 fi
 
 have_qt=no
-AC_PATH_X
-qtdir=${QTDIR}
-if test x"$qtdir" = "x" ; then
-        dnl Try to locate Qt4 in well-known places
-        AC_CHECK_FILE([/usr/share/qt4],
-                      [qtdir=/usr/share/qt4],
-                      [qtdir=/usr/lib/qt4])
-        export QTDIR=$qtdir
-	AC_MSG_WARN([QTDIR not set, assuming $qtdir but build will fail if QTDIR env var not set])
-fi
-qt_includes=$qtdir/include
-export CPPFLAGS="$CPPFLAGS -I$qt_includes"
-AC_CHECK_HEADER([QtCore/qglobal.h], [ have_libqt=yes ] )
-AM_CONDITIONAL(HAVE_LIBQT, test x"$have_libqt" = "xyes")
-if test x"$have_libqt" = "xyes" ; then
-   echo "Qt4 seems OK. Including bsbview in the build!"
+have_libqt=no
+AC_ARG_WITH([qt], [use qt4 installed at the given location to build bsbview, if possible. default is to use environment QTDIR variable], qtdir=$withval, qtdir=${QTDIR})
+if test x"$qtdir" = "xno"
+then
+  AC_MSG_NOTICE([--without-qt given, skipping Qt checks, bsbview will not be built.])
 else
-   AC_MSG_WARN([*** bsbview will not be built (no QT or QTDIR wrong) ***])
+  AC_MSG_NOTICE([Checking for Qt4 in $qtdir...])
+  AC_PATH_X
+  if test x"$qtdir" = "x" ; then
+          dnl Try to locate Qt4 in well-known places
+          AC_CHECK_FILE([/usr/share/qt4],
+                        [qtdir=/usr/share/qt4],
+                        [qtdir=/usr/lib/qt4])
+          export QTDIR=$qtdir
+    AC_MSG_WARN([QTDIR not set, assuming $qtdir but build will fail if QTDIR env var not set])
+  fi
+  qt_includes=$qtdir/include
+  export CPPFLAGS="$CPPFLAGS -I$qt_includes"
+  AC_CHECK_HEADER([QtCore/qglobal.h], [ have_libqt=yes ] )
 fi
 
+AM_CONDITIONAL(HAVE_LIBQT, test x"$have_libqt" = "xyes")
+if test x"$have_libqt" = "xyes" ; then
+   AC_MSG_NOTICE([Qt4 seems OK. Including bsbview in the build!])
+else
+   AC_MSG_NOTICE([bsbview will not be built.])
+dnl   AC_MSG_WARN([*** bsbview will not be built (no QT or QTDIR wrong) ***])
+fi
 
 dnl Test for valgrind and test which args are needed for memcheck.
 dnl Using -q --leak-check on valgrind pre-2.2 gives stderr output when
