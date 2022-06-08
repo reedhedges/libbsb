@@ -494,25 +494,55 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
 /**
  * generic polynomial to convert georeferenced lat/lon to char's x/y
  *
- * @param coeff list of polynomial coefficients
+ * @param coeff list of at least 3 and up to 12 polynomial coefficients. Any coefficients beyond the 12th are ignored.
+ * @param n size of @a coeff. 
  * @param lon longitute or x
  * @param lat latitude or y
+ * 
+ * @todo accept number of points, right now there must be 12
  *
  * @return coordinate corresponding to the coeff list
  */
-static double polytrans( double* coeff, double lon, double lat )
+static double polytrans( double* coeff, int n, double lon, double lat )
 {
-    double ret = coeff[0] + coeff[1]*lon + coeff[2]*lat;
-    ret += coeff[3]*lon*lon;
-    ret += coeff[4]*lon*lat;
-    ret += coeff[5]*lat*lat;
-    ret += coeff[6]*lon*lon*lon;
-    ret += coeff[7]*lon*lon*lat;
-    ret += coeff[8]*lon*lat*lat;
-    ret += coeff[9]*lat*lat*lat;
-    ret += coeff[10]*lat*lat*lat*lat;
-    ret += coeff[11]*lat*lat*lat*lat*lat;
+    double ret;
+    assert(n >= 3);
+    ret = coeff[0] + coeff[1]*lon + coeff[2]*lat;
+    if(n >= 4) ret += coeff[3]*lon*lon;
+    if(n >= 5) ret += coeff[4]*lon*lat;
+    if(n >= 6) ret += coeff[5]*lat*lat;
+    if(n >= 7) ret += coeff[6]*lon*lon*lon;
+    if(n >= 8) ret += coeff[7]*lon*lon*lat;
+    if(n >= 9) ret += coeff[8]*lon*lat*lat;
+    if(n >= 10) ret += coeff[9]*lat*lat*lat;
+    if(n >= 11) ret += coeff[10]*lat*lat*lat*lat;
+    if(n >= 12) ret += coeff[11]*lat*lat*lat*lat*lat;
     return ret;
+}
+
+/**
+ * converts Lon/Lat to chart's X/Y
+ *
+ * @param lon longitude (-180.0 to 180.0)
+ * @param lat latitude (-180.0 to 180.0)
+ * @param x  output chart X coordinate
+ * @param y  output chart Y coordinate
+ * @param cph Phase change for charts crossing 180 longitude
+ * @param wpx, wpy, world to pixel transform coefficients
+ * @param n sizes of wpx, wpy , must be at least 3, should be no more than 12
+ *
+ * @return 1 on success and 0 on error
+ */
+
+extern int bsb_LLtoXY_ex(double lon, double lat, int *x, int *y, double cph, double wpx[], double wpy[], int n )
+{
+    /* change longitude phase (CPH) */
+    lon = (lon < 0) ? lon + cph : lon - cph;
+    double xd = polytrans( wpx, n, lon, lat );
+    double yd = polytrans( wpy, n, lon, lat );
+    *x = (int)(xd + 0.5);
+    *y = (int)(yd + 0.5);
+    return 1;
 }
 
 /**
@@ -528,12 +558,28 @@ static double polytrans( double* coeff, double lon, double lat )
  */
 extern int bsb_LLtoXY(BSBImage *p, double lon, double  lat, int* x, int* y)
 {
-    /* change longitude phase (CPH) */
-    lon = (lon < 0) ? lon + p->cph : lon - p->cph;
-    double xd = polytrans( p->wpx, lon, lat );
-    double yd = polytrans( p->wpy, lon, lat );
-    *x = (int)(xd + 0.5);
-    *y = (int)(yd + 0.5);
+    assert(p->num_wpxs == p->num_wpys);
+    return bsb_LLtoXY_ex(lon, lat, x, y, p->cph, p->wpx, p->wpy, p->num_wpxs);
+}
+
+/**
+ * converts chart's X/Y to Lon/Lat
+ *
+ * @param x chart X coordinate
+ * @param y chart Y coordinate
+ * @param lon output longitude (-180.0 to 180.0)
+ * @param lat output latitude (-180.0 to 180.0)
+ * @param n sizes of pwx, pwy , must be at least 3, should be no more than 12
+ *
+ * @return 1 on success and 0 on error
+ */
+
+extern int bsb_XYtoLL_ex(int x, int y, double *lonout, double *latout, double cph, double pwx[], double pwy[], int n)
+{
+    double lon = polytrans( pwx, n, x, y );
+    lon = (lon < 0) ? lon + cph : lon - cph;
+    *lonout = lon;
+    *latout = polytrans( pwy, n, x, y );
     return 1;
 }
 
@@ -550,11 +596,8 @@ extern int bsb_LLtoXY(BSBImage *p, double lon, double  lat, int* x, int* y)
  */
 extern int bsb_XYtoLL(BSBImage *p, int x, int y, double* lonout, double*  latout)
 {
-    double lon = polytrans( p->pwx, x, y );
-    lon = (lon < 0) ? lon + p->cph : lon - p->cph;
-    *lonout = lon;
-    *latout = polytrans( p->pwy, x, y );
-    return 1;
+  assert(p->num_pwxs == p->num_pwys);
+  return bsb_XYtoLL_ex(x, y, lonout, latout, p->cph, p->pwx, p->pwy, p->num_pwxs);
 }
 
 
