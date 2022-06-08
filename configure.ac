@@ -22,7 +22,7 @@ case "$CC" in
 	*)
 		# override AC_PROG_CC default CFLAGS except when user specified CFLAGS
 		if test x"$orig_cflags" != x"$CFLAGS" ; then
-			CFLAGS="-g -O2 -W -Wall -Werror"
+			CFLAGS="-std=gnu99 -D_GNU_SOURCE -g -O2 -W -Wall -Werror -fPIC"
 		fi
 		AC_PROG_RANLIB
 		;;

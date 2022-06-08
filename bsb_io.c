@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h> /* for strcasecmp */
+#include <assert.h>
 #include <bsb.h>
 
 #ifdef _WIN32

@@ -57,6 +57,7 @@ static int truncate(const char *path, long length)
 }
 #else
 #include <unistd.h>		/* for truncate() */
+#include <sys/types.h>
 #endif
 
 #include <bsb.h>
