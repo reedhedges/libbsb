@@ -378,18 +378,22 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
         if (sscanf(line, "WPX/%d,", &p->wpx_level )==1)
         {
             p->num_wpxs = readNumberList( line, p->wpx, sizeof(p->wpx)/sizeof(p->wpx[0]) );
+            if(p->num_wpxs < 3) printf("Warning: less than 3 WPX values\n");
         }
         if (sscanf(line, "WPY/%d,", &p->wpy_level )==1)
         {
             p->num_wpys = readNumberList( line, p->wpy, sizeof(p->wpy)/sizeof(p->wpy[0]) );
+            if(p->num_wpys < 3) printf("Warning: less than 3 WPY values\n");
         }
         if (sscanf(line, "PWX/%d,", &p->pwx_level )==1)
         {
             p->num_pwxs = readNumberList( line, p->pwx, sizeof(p->pwx)/sizeof(p->pwx[0]) );
+            if(p->num_pwxs < 3) printf("Warning: less than 3 PWX values\n");
         }
         if (sscanf(line, "PWY/%d,", &p->pwy_level )==1)
         {
             p->num_pwys = readNumberList( line, p->pwy, sizeof(p->pwy)/sizeof(p->pwy[0]) );
+            if(p->num_pwys < 3) printf("Warning: less than 3 PWY values\n");
         }
         if ( (s = strstr(line, "NA=")) )
         {
@@ -487,6 +491,21 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
        /* position at the first row - it is safer to use index if exists */
        bsb_seek_to_row(p, 0);
     }
+
+
+    /* XXX rh debug */
+    printf("After parsing header, num_colors=%d, num_refs=%d, num_plys=%d, num_wpxs=%d, num_wpys=%d, num_pwxs=%d, num_pwys=%d, name=%lu, projection=%lu, datum=%lu, cph=%f\n",
+      p->num_colors, p->num_refs, p->num_plys, p->num_wpxs, p->num_wpys, p->num_pwxs, p->num_pwys, strlen(p->name), strlen(p->projection), strlen(p->datum), p->cph);
+    printf(" wpx[] = {");
+    for(int i = 0; i < p->num_wpxs; ++i) printf("%f, ",  p->wpx[i]);
+    printf("};\n wpy[] = {");
+    for(int i = 0; i < p->num_wpys; ++i) printf("%f, ",  p->wpy[i]);
+    printf("};\n pwx[] = {");
+    for(int i = 0; i < p->num_pwxs; ++i) printf("%f, ",  p->pwx[i]);
+    printf("};\n pwy[] = {");
+    for(int i = 0; i < p->num_pwys; ++i) printf("%f, ",  p->pwy[i]);
+    printf("};\n");
+
     return 1;
 }
 
