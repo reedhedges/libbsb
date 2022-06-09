@@ -22,7 +22,7 @@ case "$CC" in
 	*)
 		# override AC_PROG_CC default CFLAGS except when user specified CFLAGS
 		if test x"$orig_cflags" != x"$CFLAGS" ; then
-			CFLAGS="-std=gnu99 -D_GNU_SOURCE -g -O2 -W -Wall -Werror -fPIC"
+			CFLAGS="-O2 -W -Wall -Werror -fPIC"
 		fi
 		AC_PROG_RANLIB
 		;;
@@ -30,10 +30,17 @@ esac
 AM_CONDITIONAL(USE_MSVC, test x"$use_msvc" = "xyes")
 
 
+dnl --with options to make it easier to cross compile:
+AC_ARG_WITH([target], [add --target compilation flag with cross-compilation target name. default is to omit --target.], [CFLAGS="$CFLAGS --target=$withval"])
+AC_ARG_WITH([toolchain], [add --gcc-toolchain compilation flag with cross-compilation toolchain file. default is to omit --gcc-toolchain.], [CFLAGS="$CFLAGS --gcc-toolchain=$withval"])
+AC_ARG_WITH([sysroot], [add --sysroot compilation flag with cross-compilation sysroot path. default is to omit --sysroot.], [CFLAGS="$CFLAGS --sysroot=$withval"])
+AC_ARG_WITH([cc], [Set CC variable with C compiler command.], [CC=$withval])
+AC_ARG_WITH([arch], [add -march compilation flag with given value. default is to omit -march.], [CFLAGS="$CFLAGS -march=$withval"])
+
+
 dnl disable building programs, library only
 AC_ARG_ENABLE(programs, 
   [AS_HELP_STRING([--disable-programs], [Only build libbsb library. Default (or if --enable-programs given) is to build libbsb library and example/utility conversion programs.])],
-  #[echo arg given enable_programs=$enable_programs enableval=$enableval], # AC_ARG_ENABLE will set enable_programs to yes for --enable or no for --disable
   [],
   [enable_programs=yes]
 )
