@@ -30,65 +30,90 @@ esac
 AM_CONDITIONAL(USE_MSVC, test x"$use_msvc" = "xyes")
 
 
-dnl If libtiff found, build TIFF programs: tif2bsb, bsb2tif
-have_libtiff=no
-AC_CHECK_HEADER([tiff.h],
-	[AC_CHECK_LIB(tiff, TIFFOpen, [ have_libtiff=yes ],
-		[], [-lm])]
-	)
-AM_CONDITIONAL(HAVE_LIBTIFF, test x"$have_libtiff" = "xyes")
-if test x"$have_libtiff" = "xno" ; then
-	AC_MSG_WARN([*** TIFF conversion tools will not be built ***])
-fi
-
-dnl If libpng found, build PNG programs: tif2png
-have_libpng=no
-AC_CHECK_HEADER([png.h],
-	[AC_CHECK_LIB(png, png_init_io, [ have_libpng=yes ],
-		[], [-lz -lm])]
-	)
-AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
-if test x"$have_libpng" = "xno" ; then
-	AC_MSG_WARN([*** PNG conversion tools will not be built ***])
-fi
-
-have_libzip=no
-AC_CHECK_HEADER([zip.h],
-  [AC_CHECK_LIB(zip, zip_open, [ have_libzip=yes ], [], [])]
+dnl disable building programs, library only
+AC_ARG_ENABLE(programs, 
+  [AS_HELP_STRING([--disable-programs], [Only build libbsb library. Default (or if --enable-programs given) is to build libbsb library and example/utility conversion programs.])],
+  #[echo arg given enable_programs=$enable_programs enableval=$enableval], # AC_ARG_ENABLE will set enable_programs to yes for --enable or no for --disable
+  [],
+  [enable_programs=yes]
 )
-AM_CONDITIONAL(HAVE_LIBZIP, test x"$have_libzip" = "xyes")
-if test x"$have_libzip" = "xno"; then
-  AC_MSG_WARN([*** ZIP conversion tools will not be built ***])
-fi
 
-have_qt=no
-have_libqt=no
-AC_ARG_WITH([qt], [use qt4 installed at the given location to build bsbview, if possible. default is to use environment QTDIR variable], qtdir=$withval, qtdir=${QTDIR})
-if test x"$qtdir" = "xno"
+AM_CONDITIONAL(ENABLE_PROGRAMS, test x"$enable_programs" = "xyes")
+
+if test x"$enable_programs" = "xyes"
 then
-  AC_MSG_NOTICE([--without-qt given, skipping Qt checks, bsbview will not be built.])
-else
-  AC_MSG_NOTICE([Checking for Qt4 in $qtdir...])
-  AC_PATH_X
-  if test x"$qtdir" = "x" ; then
-          dnl Try to locate Qt4 in well-known places
-          AC_CHECK_FILE([/usr/share/qt4],
-                        [qtdir=/usr/share/qt4],
-                        [qtdir=/usr/lib/qt4])
-          export QTDIR=$qtdir
-    AC_MSG_WARN([QTDIR not set, assuming $qtdir but build will fail if QTDIR env var not set])
-  fi
-  qt_includes=$qtdir/include
-  export CPPFLAGS="$CPPFLAGS -I$qt_includes"
-  AC_CHECK_HEADER([QtCore/qglobal.h], [ have_libqt=yes ] )
-fi
+  AC_MSG_NOTICE([Example/utility programs enabled.])
 
-AM_CONDITIONAL(HAVE_LIBQT, test x"$have_libqt" = "xyes")
-if test x"$have_libqt" = "xyes" ; then
-   AC_MSG_NOTICE([Qt4 seems OK. Including bsbview in the build!])
+  dnl If libtiff found, build TIFF programs: tif2bsb, bsb2tif
+  have_libtiff=no
+  AC_CHECK_HEADER([tiff.h],
+    [AC_CHECK_LIB(tiff, TIFFOpen, [ have_libtiff=yes ],
+      [], [-lm])]
+    )
+  AM_CONDITIONAL(HAVE_LIBTIFF, test x"$have_libtiff" = "xyes")
+  if test x"$have_libtiff" = "xno" ; then
+    AC_MSG_WARN([*** TIFF conversion tools will not be built ***])
+  fi
+
+  dnl If libpng found, build PNG programs: tif2png
+  have_libpng=no
+  AC_CHECK_HEADER([png.h],
+    [AC_CHECK_LIB(png, png_init_io, [ have_libpng=yes ],
+      [], [-lz -lm])]
+    )
+  AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
+  if test x"$have_libpng" = "xno" ; then
+    AC_MSG_WARN([*** PNG conversion tools will not be built ***])
+  fi
+
+  have_libzip=no
+  AC_CHECK_HEADER([zip.h],
+    [AC_CHECK_LIB(zip, zip_open, [ have_libzip=yes ], [], [])]
+  )
+  AM_CONDITIONAL(HAVE_LIBZIP, test x"$have_libzip" = "xyes")
+  if test x"$have_libzip" = "xno"; then
+    AC_MSG_WARN([*** ZIP conversion tools will not be built ***])
+  fi
+
+  have_qt=no
+  have_libqt=no
+  AC_ARG_WITH([qt], [use qt4 installed at the given location to build bsbview, if possible. default is to use environment QTDIR variable], qtdir=$withval, qtdir=${QTDIR})
+  if test x"$qtdir" = "xno"
+  then
+    AC_MSG_NOTICE([--without-qt given, skipping Qt checks, bsbview will not be built.])
+  else
+    AC_MSG_NOTICE([Checking for Qt4 in $qtdir...])
+    AC_PATH_X
+    if test x"$qtdir" = "x" ; then
+            dnl Try to locate Qt4 in well-known places
+            AC_CHECK_FILE([/usr/share/qt4],
+                          [qtdir=/usr/share/qt4],
+                          [qtdir=/usr/lib/qt4])
+            export QTDIR=$qtdir
+      AC_MSG_WARN([QTDIR not set, assuming $qtdir but build will fail if QTDIR env var not set])
+    fi
+    qt_includes=$qtdir/include
+    export CPPFLAGS="$CPPFLAGS -I$qt_includes"
+    AC_CHECK_HEADER([QtCore/qglobal.h], [ have_libqt=yes ] )
+  fi
+
+  AM_CONDITIONAL(HAVE_LIBQT, test x"$have_libqt" = "xyes")
+  if test x"$have_libqt" = "xyes" ; then
+     AC_MSG_NOTICE([Qt4 seems OK. Including bsbview in the build!])
+  else
+     AC_MSG_NOTICE([bsbview will not be built.])
+  dnl   AC_MSG_WARN([*** bsbview will not be built (no QT or QTDIR wrong) ***])
+  fi
+
 else
-   AC_MSG_NOTICE([bsbview will not be built.])
-dnl   AC_MSG_WARN([*** bsbview will not be built (no QT or QTDIR wrong) ***])
+
+  AC_MSG_NOTICE([Example/utility programs disabled. Only libbsb library will be built.])
+
+  AM_CONDITIONAL(HAVE_LIBTIFF, false)
+  AM_CONDITIONAL(HAVE_LIBPNG, false)
+  AM_CONDITIONAL(HAVE_LIBZIP, false)
+  AM_CONDITIONAL(HAVE_LIBQT, false)
+  
 fi
 
 dnl Test for valgrind and test which args are needed for memcheck.
