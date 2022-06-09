@@ -1,19 +1,21 @@
-# $Id: Makefile.am,v 1.19 2007/02/18 07:35:04 mikrom Exp $
-#
 
 EXTRA_DIST = australia4c.kap
 
 SUBDIRS = . tests
 
-.PHONY: valgrind-check
-valgrind-check:
+.PHONY: valgrind-check dump-defines FORCE
+
+valgrind-check: FORCE
 	cd tests && $(MAKE) $(AM_MAKEFLAGS) $@
+
 
 lib_LIBRARIES = libbsb.a
 libbsb_a_SOURCES = bsb_io.c
-INCLUDES = -I$(top_builddir)
+# INCLUDES = -I$(top_builddir)
 include_HEADERS = bsb.h
 
+dump-defines: FORCE
+	$(COMPILE) -E -dD $(libbsb_a_SOURCES)
 
 if ENABLE_PROGRAMS
 
@@ -32,6 +34,7 @@ endif
 
 if HAVE_LIBQT
 bin_PROGRAMS += bsbview
+bsbview_INCLUDES = $(BSBVIEW_INCLUDES)
 bsbview_SOURCES =
 bsbview:
 	cd bsbview_src;qmake -makefile bsbview.pro

@@ -1,8 +1,11 @@
-dnl $Id: configure.ac,v 1.25 2007/02/18 07:35:04 mikrom Exp $
-dnl
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(bsb2tif.c)
-AM_INIT_AUTOMAKE(libbsb, 0.0.8)
+
+AC_INIT([libbsb], [0.0.9])
+AC_CONFIG_SRCDIR([bsb_io.c])
+AM_INIT_AUTOMAKE
+
+dnl AC_INIT(bsb2tif.c)
+dnl AM_INIT_AUTOMAKE(libbsb, 0.0.9)
 
 dnl AC_PROG_CC finds CC and defaults CFLAGS (usually -g -O2)
 orig_cflags=$CFLAGS
@@ -31,11 +34,11 @@ AM_CONDITIONAL(USE_MSVC, test x"$use_msvc" = "xyes")
 
 
 dnl --with options to make it easier to cross compile:
-AC_ARG_WITH([target], [add --target compilation flag with cross-compilation target name. default is to omit --target.], [CFLAGS="$CFLAGS --target=$withval"])
-AC_ARG_WITH([toolchain], [add --gcc-toolchain compilation flag with cross-compilation toolchain file. default is to omit --gcc-toolchain.], [CFLAGS="$CFLAGS --gcc-toolchain=$withval"])
+AC_ARG_WITH([target], [add --target compilation flag with cross-compilation target name. default is to omit --target.], [CFLAGS="$CFLAGS --target=$withval"], [])
+AC_ARG_WITH([toolchain], [add --gcc-toolchain compilation flag with cross-compilation toolchain file. default is to omit --gcc-toolchain.], [CFLAGS="$CFLAGS --gcc-toolchain=$withval"], [])
 AC_ARG_WITH([sysroot], [add --sysroot compilation flag with cross-compilation sysroot path. default is to omit --sysroot.], [CFLAGS="$CFLAGS --sysroot=$withval"])
-AC_ARG_WITH([cc], [Set CC variable with C compiler command.], [CC=$withval])
-AC_ARG_WITH([arch], [add -march compilation flag with given value. default is to omit -march.], [CFLAGS="$CFLAGS -march=$withval"])
+AC_ARG_WITH([cc], [Set CC variable with C compiler command.], [CC=$withval], [])
+AC_ARG_WITH([arch], [add -march compilation flag with given value. default is to omit -march.], [CFLAGS="$CFLAGS -march=$withval"], [])
 
 
 dnl disable building programs, library only
@@ -97,11 +100,15 @@ then
                           [qtdir=/usr/share/qt4],
                           [qtdir=/usr/lib/qt4])
             export QTDIR=$qtdir
-      AC_MSG_WARN([QTDIR not set, assuming $qtdir but build will fail if QTDIR env var not set])
+            AC_MSG_WARN([QTDIR not set, assuming $qtdir but build will fail if QTDIR env var not set])
     fi
-    qt_includes=$qtdir/include
-    export CPPFLAGS="$CPPFLAGS -I$qt_includes"
-    AC_CHECK_HEADER([QtCore/qglobal.h], [ have_libqt=yes ] )
+    AC_SUBST([BSBVIEW_INCLUDES], [$QTDIR/include])
+    
+    dnl now make sure it works
+    old_cppflags="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS -I$qtdir/include"
+    AC_CHECK_HEADER([QtCore/qglobal.h], [have_libqt=yes])
+    export CPPFLAGS="$old_cppflags"
   fi
 
   AM_CONDITIONAL(HAVE_LIBQT, test x"$have_libqt" = "xyes")
