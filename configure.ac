@@ -12,12 +12,21 @@ orig_cflags=$CFLAGS
 AC_PROG_CC
 AC_PROG_CXX
 
+dnl optimize and debug options.  --enable-optimize adds -O3. --enable-debug just adds -g or -Zi. Specifying neither does neither.
+AC_ARG_ENABLE([optimize], [Enable optimization (O3).  If not specified, no optimization flags are added.])
+AC_ARG_ENABLE([debug], [Enable debug information (-g or -Zi).  If not specified, no debug information is included.])
+
+if test x"$enable_optimize" = "xyes"; then AC_MSG_NOTICE([Optimization enabled]); else AC_MSG_NOTICE([Optimization not enabled]); fi
+if test x"$enable_debug" = "xyes"; then AC_MSG_NOTICE([Debug enabled]); else AC_MSG_NOTICE([Debug not enabled]); fi
+
 dnl Default CFLAGS for developer's convenience and avoid ranlib with MSVC
 use_msvc=no
 case "$CC" in
 	cl*|CL*)
 		# -Od turn off optimisation, -Zi turn on debugging info
-		CFLAGS="-nologo -Od -W3 -Zi"
+		CFLAGS="-nologo -W3"
+    if test x"$enable_optimize" = "xyes"; then CFLAGS="$CFLAGS -O3"; else CFLAGS="$CFLAGS -Od"; fi
+    if test x"$enable_debug" = "xyes"; then CFLAGS="$CFLAGS -Zi"; fi
 		# Use a no-op command for ranlib
 		RANLIB="true"
 		use_msvc=yes
@@ -25,8 +34,10 @@ case "$CC" in
 	*)
 		# override AC_PROG_CC default CFLAGS except when user specified CFLAGS
 		if test x"$orig_cflags" != x"$CFLAGS" ; then
-			CFLAGS="-O2 -W -Wall -Werror -fPIC"
+			CFLAGS="-W -Wall -Werror -fPIC"
 		fi
+    if test x"$enable_optimize" = "xyes"; then CFLAGS="$CFLAGS -O3"; fi
+    if test x"$enable_debug" = "xyes"; then CFLAGS="$CFLAGS -g"; fi
 		AC_PROG_RANLIB
 		;;
 esac
