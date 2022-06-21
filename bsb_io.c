@@ -493,7 +493,7 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
     }
 
 
-    /* XXX rh debug */
+    /* debug:
     printf("After parsing header, num_colors=%d, num_refs=%d, num_plys=%d, num_wpxs=%d, num_wpys=%d, num_pwxs=%d, num_pwys=%d, name=%lu, projection=%lu, datum=%lu, cph=%f\n",
       p->num_colors, p->num_refs, p->num_plys, p->num_wpxs, p->num_wpys, p->num_pwxs, p->num_pwys, strlen(p->name), strlen(p->projection), strlen(p->datum), p->cph);
     printf(" wpx[] = {");
@@ -505,6 +505,7 @@ int bsb_open_fp(FILE *fp, BSBImage *p)
     printf("};\n pwy[] = {");
     for(int i = 0; i < p->num_pwys; ++i) printf("%f, ",  p->pwy[i]);
     printf("};\n");
+    */
 
     return 1;
 }
