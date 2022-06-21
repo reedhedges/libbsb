@@ -114,7 +114,7 @@ then
 
   have_qt=no
   have_libqt=no
-  AC_ARG_WITH([qt], [use qt4 installed at the given location to build bsbview, if possible. default is to use environment QTDIR variable], qtdir=$withval, qtdir=${QTDIR})
+  AC_ARG_WITH([qt], AS_HELP_STRING([--with-qt=<qtdir>], [use qt4 installed at the given location to build bsbview, if possible. default is to use environment QTDIR variable]), qtdir=$withval, qtdir=${QTDIR})
   if test x"$qtdir" = "xno"
   then
     AC_MSG_NOTICE([--without-qt given, skipping Qt checks, bsbview will not be built.])
