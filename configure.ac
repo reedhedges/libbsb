@@ -18,14 +18,20 @@ dnl Check if we can use -flto=thin (i.e. clang).  Otherwise we try -flto.
 dnl AX_CHECK_COMPILE_FLAG is in m4/ax_check_compile_flag.m4.  It sholud have been included in aclocal.m4 by running autoreconf or aclocal.
 have_flto_thin=no
 have_flto=no
+have_flto_auto_n=no
+have_fuse_linker_plugin=no
 AX_CHECK_COMPILE_FLAG([-flto], [have_flto=yes], [have_flto=no])
 AX_CHECK_COMPILE_FLAG([-flto=thin], [have_flto_thin=yes], [have_flto_thin=no])
+AX_CHECK_COMPILE_FLAG([-flto=auto], [have_flto_auto_n=yes], [have_flto_auto_n=no])
+AX_CHECK_LINK_FLAG([-fuse-linker-plugin], [have_fuse_linker_plugin=yes], [have_fuse_linker_plugin=no])
 
 dnl optimize and debug options.  --enable-optimize adds -O3. --enable-debug just adds -g or -Zi. Specifying neither does neither.
 dnl TODO use HELP_STRING macro
 AC_ARG_ENABLE([optimize], [AS_HELP_STRING([--enable-optimize], [Enable optimization (O3).  If not specified, no optimization flags are added.])])
 AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [Enable debug information (-g or -Zi).  If not specified, no debug information is included.])])
-AC_ARG_ENABLE([lto], [AS_HELP_STRING([--enable-lto], [Enable link-time optimization if --enable-optimization was also given.])])
+AC_ARG_ENABLE([lto], [AS_HELP_STRING([--enable-lto], [Enable link-time optimization if --enable-optimization was also given. libbsb itself may not benefit from LTO but when the static library libbsb.a is linked to a program using -flto and -fuse-linker-plugin, then the libbsb objects files may be used by the optimizer.])])
+
+dnl TODO Make sure to use gcc-ranlib or gcc-ar if LTO is enabled and the compiler is GCC?? 
 
 if test x"$enable_optimize" = "xyes"
   then 
@@ -70,15 +76,24 @@ case "$CC" in
       else
         if test x"$have_flto" = "xyes"
         then
-          CFLAGS="$CFLAGS -flto"
+          if test x"$have_flto_auto_n" = "xyes"
+          then
+            CFLAGS="$CFLAGS -flto=auto"
+          else
+            CFLAGS="$CFLAGS -flto"
+          fi
+          dnl This is needed by the utility programs linking to libbsb.a to use objects from libbsb.a in their own LTO:
+          if test x"$have_fuse_linker_plugin" = "xyes"
+          then
+            LDFLAGS="$LDFLAGS -fuse-linker-plugin"     
+          fi
         else
           AC_MSG_ERROR([--enable-optimize and --enable-lto specified, but compiler does not support -flto option.])
         fi
       fi
     fi
 
-    dnl use -flto if gcc and -flto=thin if clang.
-
+    dnl Try use gcc-ranlib and gcc-ar if --enable-lto and have_flto:
 		AC_PROG_RANLIB
 		;;
 esac
