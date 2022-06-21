@@ -4,6 +4,8 @@ AC_INIT([libbsb], [0.0.9])
 AC_CONFIG_SRCDIR([bsb_io.c])
 AM_INIT_AUTOMAKE
 
+AC_CONFIG_MACRO_DIR([m4])
+
 dnl AC_INIT(bsb2tif.c)
 dnl AM_INIT_AUTOMAKE(libbsb, 0.0.9)
 
@@ -11,6 +13,13 @@ dnl AC_PROG_CC finds CC and defaults CFLAGS (usually -g -O2)
 orig_cflags=$CFLAGS
 AC_PROG_CC
 AC_PROG_CXX
+
+dnl Check if we can use -flto=thin (i.e. clang).  Otherwise we try -flto.
+dnl AX_CHECK_COMPILE_FLAG is in m4/ax_check_compile_flag.m4.  It sholud have been included in aclocal.m4 by running autoreconf or aclocal.
+have_flto_thin=no
+have_flto=no
+AX_CHECK_COMPILE_FLAG([-flto], [have_flto=yes], [have_flto=no])
+AX_CHECK_COMPILE_FLAG([-flto=thin], [have_flto_thin=yes], [have_flto_thin=no])
 
 dnl optimize and debug options.  --enable-optimize adds -O3. --enable-debug just adds -g or -Zi. Specifying neither does neither.
 dnl TODO use HELP_STRING macro
@@ -35,6 +44,7 @@ if test x"$enable_lto" = "xyes"; then AC_MSG_NOTICE([Link-time optimization enab
 dnl Default CFLAGS for developer's convenience and avoid ranlib with MSVC
 use_msvc=no
 case "$CC" in
+  dnl TODO this will match "clang" (but not /usr/bin/clang or similar), need some other way to detect MSVC cl.exe:
 	cl*|CL*)
 		# -Od turn off optimisation, -Zi turn on debugging info
 		CFLAGS="-nologo -W3"
@@ -52,7 +62,23 @@ case "$CC" in
 		fi
     if test x"$enable_optimize" = "xyes"; then CFLAGS="$CFLAGS -O3"; fi
     if test x"$enable_debug" = "xyes"; then CFLAGS="$CFLAGS -g"; fi
-    if test x"$enable_optimize" = "xyes" -a x"$enable_lto" = "xyes"; then CFLAGS="$CFLAGS -flto"; fi
+    if test x"$enable_optimize" = "xyes" -a x"$enable_lto" = "xyes"
+    then 
+      if test x"$have_flto_thin" = "xyes" 
+      then 
+        CFLAGS="$CFLAGS -flto=thin" 
+      else
+        if test x"$have_flto" = "xyes"
+        then
+          CFLAGS="$CFLAGS -flto"
+        else
+          AC_MSG_ERROR([--enable-optimize and --enable-lto specified, but compiler does not support -flto option.])
+        fi
+      fi
+    fi
+
+    dnl use -flto if gcc and -flto=thin if clang.
+
 		AC_PROG_RANLIB
 		;;
 esac
