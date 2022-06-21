@@ -13,11 +13,24 @@ AC_PROG_CC
 AC_PROG_CXX
 
 dnl optimize and debug options.  --enable-optimize adds -O3. --enable-debug just adds -g or -Zi. Specifying neither does neither.
-AC_ARG_ENABLE([optimize], [Enable optimization (O3).  If not specified, no optimization flags are added.])
-AC_ARG_ENABLE([debug], [Enable debug information (-g or -Zi).  If not specified, no debug information is included.])
+dnl TODO use HELP_STRING macro
+AC_ARG_ENABLE([optimize], [AS_HELP_STRING([--enable-optimize], [Enable optimization (O3).  If not specified, no optimization flags are added.])])
+AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [Enable debug information (-g or -Zi).  If not specified, no debug information is included.])])
+AC_ARG_ENABLE([lto], [AS_HELP_STRING([--enable-lto], [Enable link-time optimization if --enable-optimization was also given.])])
 
-if test x"$enable_optimize" = "xyes"; then AC_MSG_NOTICE([Optimization enabled]); else AC_MSG_NOTICE([Optimization not enabled]); fi
+if test x"$enable_optimize" = "xyes"
+  then 
+    AC_MSG_NOTICE([Optimization enabled])
+    if test x"$enable_lto" = "xyes"
+    then 
+      AC_MSG_NOTICE([Link-time optimization enabled])
+    fi
+  else 
+    AC_MSG_NOTICE([Optimization not enabled])
+fi
+
 if test x"$enable_debug" = "xyes"; then AC_MSG_NOTICE([Debug enabled]); else AC_MSG_NOTICE([Debug not enabled]); fi
+if test x"$enable_lto" = "xyes"; then AC_MSG_NOTICE([Link-time optimization enabled]); fi
 
 dnl Default CFLAGS for developer's convenience and avoid ranlib with MSVC
 use_msvc=no
@@ -27,6 +40,7 @@ case "$CC" in
 		CFLAGS="-nologo -W3"
     if test x"$enable_optimize" = "xyes"; then CFLAGS="$CFLAGS -O3"; else CFLAGS="$CFLAGS -Od"; fi
     if test x"$enable_debug" = "xyes"; then CFLAGS="$CFLAGS -Zi"; fi
+    if test x"$enable_optimize" = "xyes" -a x"$enable_lto" = "xyes"; then CFLAGS="$CFLAGS -GL"; LDFLAGS="$LDFLAGS -LTCG"; fi
 		# Use a no-op command for ranlib
 		RANLIB="true"
 		use_msvc=yes
@@ -38,6 +52,7 @@ case "$CC" in
 		fi
     if test x"$enable_optimize" = "xyes"; then CFLAGS="$CFLAGS -O3"; fi
     if test x"$enable_debug" = "xyes"; then CFLAGS="$CFLAGS -g"; fi
+    if test x"$enable_optimize" = "xyes" -a x"$enable_lto" = "xyes"; then CFLAGS="$CFLAGS -flto"; fi
 		AC_PROG_RANLIB
 		;;
 esac
@@ -45,11 +60,12 @@ AM_CONDITIONAL(USE_MSVC, test x"$use_msvc" = "xyes")
 
 
 dnl --with options to make it easier to cross compile:
-AC_ARG_WITH([target], [add --target compilation flag with cross-compilation target name. default is to omit --target.], [CFLAGS="$CFLAGS --target=$withval"], [])
-AC_ARG_WITH([toolchain], [add --gcc-toolchain compilation flag with cross-compilation toolchain file. default is to omit --gcc-toolchain.], [CFLAGS="$CFLAGS --gcc-toolchain=$withval"], [])
-AC_ARG_WITH([sysroot], [add --sysroot compilation flag with cross-compilation sysroot path. default is to omit --sysroot.], [CFLAGS="$CFLAGS --sysroot=$withval"])
-AC_ARG_WITH([cc], [Set CC variable with C compiler command.], [CC=$withval], [])
-AC_ARG_WITH([arch], [add -march compilation flag with given value. default is to omit -march.], [CFLAGS="$CFLAGS -march=$withval"], [])
+dnl TODO use AS_HELP_STRING macro
+AC_ARG_WITH([target], AS_HELP_STRING([--with-target=<target>], [add --target compilation flag with cross-compilation target name. default is to omit --target.]), [CFLAGS="$CFLAGS --target=$withval"], [])
+AC_ARG_WITH([toolchain], AS_HELP_STRING([--with-toolchain=<toolchain-file>], [add --gcc-toolchain compilation flag with cross-compilation toolchain file. default is to omit --gcc-toolchain.]), [CFLAGS="$CFLAGS --gcc-toolchain=$withval"], [])
+AC_ARG_WITH([sysroot], AS_HELP_STRING([--with-sysroot=<sysroot>], [add --sysroot compilation flag with cross-compilation sysroot path. default is to omit --sysroot.]), [CFLAGS="$CFLAGS --sysroot=$withval"])
+AC_ARG_WITH([cc], AS_HELP_STRING([--with-cc=<command>], [Set CC variable with C compiler command.]), [CC=$withval], [])
+AC_ARG_WITH([arch], AS_HELP_STRING([--with-arch=<architecture>], [add -march compilation flag with given value. default is to omit -march.]), [CFLAGS="$CFLAGS -march=$withval"], [])
 
 
 dnl disable building programs, library only
