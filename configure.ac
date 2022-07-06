@@ -14,6 +14,8 @@ orig_cflags=$CFLAGS
 AC_PROG_CC
 AC_PROG_CXX
 
+AC_MSG_NOTICE([CC is $CC.  CXX is $CXX])
+
 dnl Check if we can use -flto=thin (i.e. clang).  Otherwise we try -flto.
 dnl AX_CHECK_COMPILE_FLAG is in m4/ax_check_compile_flag.m4.  It sholud have been included in aclocal.m4 by running autoreconf or aclocal.
 have_flto_thin=no
@@ -29,7 +31,7 @@ dnl optimize and debug options.  --enable-optimize adds -O3. --enable-debug just
 dnl TODO use HELP_STRING macro
 AC_ARG_ENABLE([optimize], [AS_HELP_STRING([--enable-optimize], [Enable optimization (O3).  If not specified, no optimization flags are added.])])
 AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug], [Enable debug information (-g or -Zi).  If not specified, no debug information is included.])])
-AC_ARG_ENABLE([lto], [AS_HELP_STRING([--enable-lto], [Enable link-time optimization if --enable-optimization was also given. libbsb itself may not benefit from LTO but when the static library libbsb.a is linked to a program using -flto and -fuse-linker-plugin, then the libbsb objects files may be used by the optimizer.])])
+AC_ARG_ENABLE([lto], [AS_HELP_STRING([--enable-lto], [Enable link-time optimization if --enable-optimization was also given. libbsb itself will not benefit much from LTO but when the static library libbsb.a is linked to a program using -flto and -fuse-linker-plugin, then the libbsb objects files may be used by the link-time optimizer in that program.])])
 
 dnl TODO Make sure to use gcc-ranlib or gcc-ar if LTO is enabled and the compiler is GCC?? 
 
@@ -106,6 +108,7 @@ AC_ARG_WITH([target], AS_HELP_STRING([--with-target=<target>], [add --target com
 AC_ARG_WITH([toolchain], AS_HELP_STRING([--with-toolchain=<toolchain-file>], [add --gcc-toolchain compilation flag with cross-compilation toolchain file. default is to omit --gcc-toolchain.]), [CFLAGS="$CFLAGS --gcc-toolchain=$withval"], [])
 AC_ARG_WITH([sysroot], AS_HELP_STRING([--with-sysroot=<sysroot>], [add --sysroot compilation flag with cross-compilation sysroot path. default is to omit --sysroot.]), [CFLAGS="$CFLAGS --sysroot=$withval"])
 AC_ARG_WITH([cc], AS_HELP_STRING([--with-cc=<command>], [Set CC variable with C compiler command.]), [CC=$withval], [])
+AC_ARG_WITH([cxx], AS_HELP_STRING([--with-cxx=<command>], [Set CXX variable with C++ compiler command.]), [CXX=$withval], [])
 AC_ARG_WITH([arch], AS_HELP_STRING([--with-arch=<architecture>], [add -march compilation flag with given value. default is to omit -march.]), [CFLAGS="$CFLAGS -march=$withval"], [])
 
 
